@@ -8,11 +8,11 @@
 		<version>3.1.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.bezkoder</groupId>
+	<groupId>com.pre.commit.hooks</groupId>
 	<artifactId>spring-boot-jpa-h2</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>spring-boot-jpa-h2</name>
-	<description>Spring Boot JPA + H2 database example - CRUD Rest Apis</description>
+	<name>java-pre-commit-hooks</name>
+	<description>Spring Boot JPA + H2 pre commit hooks</description>
 
 	<properties>
 		<java.version>17</java.version>
