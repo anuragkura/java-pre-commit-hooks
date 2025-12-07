@@ -1,10 +1,10 @@
-package java.pre.commit.hooks.h2.model;
+package com.pre.commit.hooks.h2.model;
 
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "tutorials")
-public class Tutorial {
+public class CRUDModel {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
@@ -19,11 +19,9 @@ public class Tutorial {
   @Column(name = "published")
   private boolean published;
 
-  public Tutorial() {
+  public CRUDModel() {}
 
-  }
-
-  public Tutorial(String title, String description, boolean published) {
+  public CRUDModel(String title, String description, boolean published) {
     this.title = title;
     this.description = description;
     this.published = published;
@@ -59,7 +57,14 @@ public class Tutorial {
 
   @Override
   public String toString() {
-    return "Tutorial [id=" + id + ", title=" + title + ", desc=" + description + ", published=" + published + "]";
+    return "Tutorial [id="
+        + id
+        + ", title="
+        + title
+        + ", desc="
+        + description
+        + ", published="
+        + published
+        + "]";
   }
-
 }
