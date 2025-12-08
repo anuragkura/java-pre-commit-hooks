@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+# --- helper to show message and exit ---
+fail() {
+  echo "ERROR: $1"
+  exit 1
+}
+
+echo "Running pre-commit checks..."
+
+# 1) Check for unresolved merge conflict markers in staged files
+echo "Checking for git conflict markers in staged files..."
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.java$' || true)
+if [ -n "$STAGED_FILES" ]; then
+  for f in $STAGED_FILES; do
+    # Use git show to look at staged contents
+    if git show :"$f" | grep -E '^(<<<<<<<|=======|>>>>>>> )' -n >/dev/null 2>&1; then
+      fail "Merge conflict markers found in staged file: $f. Resolve conflicts before committing."
+    fi
+  done
+fi
+
+# 2) Run formatter (Spotless). This will modify files if formatting needed.
+echo "Running Spotless formatter (maven)..."
+# Run only on project root. This may be slow for large repos; you can optimize later.
+mvn -q com.diffplug.spotless:spotless-maven-plugin:apply || fail "Spotless formatting failed."
+
+# If Spotless changed files, add them to the commit automatically
+if ! git diff --quiet; then
+  echo "Formatting made changes. Adding formatted files to index."
+  git add -A
+fi
+
+# 3) Run full maven verify (compilation + tests + jacoco checks)
+echo "Running mvn clean verify (compiles, runs tests, enforces JaCoCo check)..."
+# Turn off surefire noisy output but keep failure visible
+mvn -q clean verify || fail "Maven verify failed (compilation, tests, or coverage check)."
+
+# 4) Optionally run a fast grep scan for things like TODO with 'XXX' or compilation completion errors
+# Example: fail if compilation completion placeholder found (like TODO_COMPLETE or similar)
+# Uncomment and customize patterns below if needed
+# if git grep -n --cached -E "TODO_COMPLETE|COMPILATION_PLACEHOLDER" -- '*.java' >/dev/null 2>&1; then
+#   fail "Found code placeholders (COMPILATION_PLACEHOLDER/TODO_COMPLETE) in staged files"
+# fi
+
+echo "All pre-commit checks passed."
+exit 0
