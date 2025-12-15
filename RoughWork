@@ -1,0 +1,108 @@
+@ExtendWith(MockitoExtension.class)
+class TokenServiceImplTest {
+
+    @InjectMocks
+    private TokImpl Service;
+
+    @Mock
+    private RestTemplate restTemplate;
+
+    @Mock
+    private WebConfig ebConfig;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(tokenService, "restTemplate", restTemplate);
+        ReflectionTestUtils.setField(tokenService, "ebConfig", ebConfig);
+        ReflectionTestUtils.setField(tokenService, "objectMapper", objectMapper);
+    }
+
+    @Test
+    void apigeeTokenGenration_success() {
+        // Arrange
+        Map<String, Object> subjectMap = new HashMap<>();
+        subjectMap.put("subjectMap", Map.of(
+                .ORIGINATING_CLIENT_IP, "127.0.0.1"
+        ));
+
+        when(ebConfig.getApigeeUrl()).thenReturn("http://apigee/token");
+        when(ebConfig.getApigeeUser()).thenReturn("clientId");
+        when(ebConfig.getApigeeSecret()).thenReturn("encryptedSecret");
+
+        esponseVO responseVO = new ponseVO();
+        responseVO.setAccessToken("access-token");
+
+        ResponseEntity<ResponseVO> responseEntity =
+                new ResponseEntity<>(responseVO, HttpStatus.OK);
+
+        try (MockedStatic<EncryptUtils> mockedEncrypt = Mockito.mockStatic(EncryptUtils.class)) {
+            mockedEncrypt
+                    .when(() -> EncryptUtils.decrypt("encryptedSecret"))
+                    .thenReturn("decryptedSecret");
+
+            when(restTemplate.postForObject(
+                    anyString(),
+                    any(HttpEntity.class),
+                    eq(sponseVO.class))
+            ).thenReturn(responseVO);
+
+            // Act
+            String token = tokenService.apiGenration(subjectMap);
+
+            // Assert
+            assertNotNull(token);
+            assertEquals("access-token", token);
+        }
+    }
+
+    @Test
+    void apigeeTokenGenration_whenDecryptThrowsException_returnsNull() {
+        // Arrange
+        Map<String, Object> subjectMap = new HashMap<>();
+
+        when(cmWebConfig.getApigeeSecret()).thenReturn("bad-secret");
+
+        try (MockedStatic<EncryptUtils> mockedEncrypt = Mockito.mockStatic(EncryptUtils.class)) {
+            mockedEncrypt
+                    .when(() -> EncryptUtils.decrypt("bad-secret"))
+                    .thenThrow(new RuntimeException("Decrypt failed"));
+
+            // Act
+            String token = tokenService.apigeeTokenGenration(subjectMap);
+
+            // Assert
+            assertNull(token);
+        }
+    }
+
+    @Test
+    void apigeeTokenGenration_whenRestTemplateFails_returnsNull() {
+        // Arrange
+        Map<String, Object> subjectMap = new HashMap<>();
+
+        when(ebConfig.getApigeeUrl()).thenReturn("http://apigee/token");
+        when(ebConfig.getApigeeUser()).thenReturn("clientId");
+        when(ebConfig.getApigeeSecret()).thenReturn("encryptedSecret");
+
+        try (MockedStatic<EncryptUtils> mockedEncrypt = Mockito.mockStatic(EncryptUtils.class)) {
+            mockedEncrypt
+                    .when(() -> EncryptUtils.decrypt("encryptedSecret"))
+                    .thenReturn("decryptedSecret");
+
+            when(restTemplate.postForObject(
+                    anyString(),
+                    any(HttpEntity.class),
+                    eq(ResponseVO.class))
+            ).thenThrow(new RestClientException("API down"));
+
+            // Act
+            String token = ervice.tokenGenration(subjectMap);
+
+            // Assert
+            assertNull(token);
+        }
+    }
+}
